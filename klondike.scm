@@ -118,7 +118,7 @@
   ; to move *down* from the foundation.
   (if (not (or (empty-slot? start-slot)
 	       (member start-slot foundation)))
-	   (plop-if-ace-or-deuce start-slot))
+	   (button-double-clicked start-slot))
   #t)
 
 (define (button-released start-slot card-list end-slot)
