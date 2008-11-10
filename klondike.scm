@@ -29,6 +29,7 @@
 (define foundation '(2 3 4 5))
 (define stock 0)
 (define waste 1)
+(define selected-card "unint")
 
 (define (new-game)
   (initialize-playing-area)
@@ -60,6 +61,7 @@
   (deal-tableau tableau)
   
   (map flip-top-card tableau)
+  (for-each plop-if-ace '(6 7 8 9 10 11 12))
 
   (give-status-message)
 
@@ -75,7 +77,8 @@
 (define (give-status-message)
   (set-statusbar-message (string-append (get-stock-no-string)
 					"   "
-					(get-redeals-string))))
+					(get-redeals-string)
+					"  -- " selected-card)))
 
 (define (get-redeals-string)
   (if (< max-redeal 0) ""
@@ -87,10 +90,16 @@
 		 (number->string (length (get-cards 0)))))
 
 (define (button-pressed slot-id card-list)
+  (set! selected-card (get-name (car (reverse (get-cards slot-id)))))
   (and (or (> slot-id 1)
 	   (and (= slot-id 1)
 		(= (length card-list) 1)))
        (is-visible? (car (reverse card-list)))))
+
+; Check if slot is an ace; if so move it to the foundation and 
+; check the next exposed card...
+(define (plop-if-ace slot)
+  (if (is-ace? slot) (button-double-clicked slot)))
 
 (define (complete-transaction start-slot card-list end-slot)
   (move-n-cards! start-slot end-slot card-list)
@@ -101,6 +110,8 @@
   (if (and (not (empty-slot? start-slot)) 
 	   (member start-slot tableau))
       (make-visible-top-card start-slot))
+  (if (not (empty-slot? start-slot))
+	   (plop-if-ace start-slot))
   #t)
 
 (define (button-released start-slot card-list end-slot)
@@ -245,10 +256,21 @@
       (list 0 (_"No hint available right now"))))
 
 (define (game-won)
-  (and (= 13 (length (get-cards 2)))
-       (= 13 (length (get-cards 3)))
-       (= 13 (length (get-cards 4)))
-       (= 13 (length (get-cards 5)))))
+  (or 
+   (and (= 13 (length (get-cards 2)))
+	(= 13 (length (get-cards 3)))
+	(= 13 (length (get-cards 4)))
+	(= 13 (length (get-cards 5))))
+   (and 
+    (or (< max-redeal 0) (> (- max-redeal FLIP-COUNTER) 0))
+    ; slot 6 is always visible or empty
+    (or (empty-slot? 7) (is-visible? (car (reverse (get-cards 7)))))
+    (or (empty-slot? 8) (is-visible? (car (reverse (get-cards 8)))))
+    (or (empty-slot? 9) (is-visible? (car (reverse (get-cards 9)))))
+    (or (empty-slot? 10) (is-visible? (car (reverse (get-cards 10)))))
+    (or (empty-slot? 11) (is-visible? (car (reverse (get-cards 11)))))
+    (or (empty-slot? 12) (is-visible? (car (reverse (get-cards 12))))))))
+   
 
 ; The hints still miss some useful reversible moves:
 ;
