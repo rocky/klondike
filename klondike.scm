@@ -1,5 +1,7 @@
 ; AisleRiot - klondike.scm
 ; Copyright (C) 1998, 2003 Jonathan Blandford <jrb@mit.edu>
+; 
+; Changes to make this game less lame: rocky@gnu.org
 ;
 ; This game is free software; you can redistribute it and/or modify
 ; it under the terms of the GNU General Public License as published by
@@ -61,7 +63,7 @@
   (deal-tableau tableau)
   
   (map flip-top-card tableau)
-  (for-each plop-if-ace '(6 7 8 9 10 11 12))
+  (for-each plop-if-ace-or-deuce '(6 7 8 9 10 11 12))
 
   (give-status-message)
 
@@ -96,10 +98,11 @@
 		(= (length card-list) 1)))
        (is-visible? (car (reverse card-list)))))
 
-; Check if slot is an ace; if so move it to the foundation and 
+; Check if slot is an ace or a deuce; if so move it to the foundation and 
 ; check the next exposed card...
-(define (plop-if-ace slot)
-  (if (is-ace? slot) (button-double-clicked slot)))
+(define (plop-if-ace-or-deuce slot)
+  (if (or (is-ace? slot) (is-deuce? slot))
+	  (button-double-clicked slot)))
 
 (define (complete-transaction start-slot card-list end-slot)
   (move-n-cards! start-slot end-slot card-list)
@@ -110,8 +113,12 @@
   (if (and (not (empty-slot? start-slot)) 
 	   (member start-slot tableau))
       (make-visible-top-card start-slot))
-  (if (not (empty-slot? start-slot))
-	   (plop-if-ace start-slot))
+  ; See if we can move an exposed card to the foundation
+  ; However don't try if the pile is empty or we just tried
+  ; to move *down* from the foundation.
+  (if (not (or (empty-slot? start-slot)
+	       (member start-slot foundation)))
+	   (plop-if-ace-or-deuce start-slot))
   #t)
 
 (define (button-released start-slot card-list end-slot)
@@ -139,10 +146,14 @@
 			    (- (get-value (car card-list)) 1))))))))
 
 (define (button-clicked start-slot)
-  (and (= start-slot stock)
-       (flip-stock stock waste max-redeal 
-                               (if deal-three 3 1))))
+  (if (= start-slot stock)
+      (begin
+	(flip-stock stock waste max-redeal 
+                               (if deal-three 3 1))
+	(button-double-clicked waste))))
 
+; If a the top card in start-slot can be moved to the foundation, do
+; it.
 (define (button-double-clicked start-slot)
   (or (and (member start-slot foundation)
 	   (autoplay-foundations))
@@ -195,6 +206,11 @@
 (define (is-ace? slot-id)
   (and (not (empty-slot? slot-id))
        (= ace (get-value (get-top-card slot-id)))
+       (list 2 (get-name (get-top-card slot-id)) (_"an empty slot" ))))
+
+(define (is-deuce? slot-id)
+  (and (not (empty-slot? slot-id))
+       (= 2 (get-value (get-top-card slot-id)))
        (list 2 (get-name (get-top-card slot-id)) (_"an empty slot" ))))
 
 (define (shiftable? slot-id2)
@@ -255,8 +271,19 @@
            (list 0 (_"Try moving cards down from the foundation")))
       (list 0 (_"No hint available right now"))))
 
+; The game is won if all of the cards are in the foundation.  However
+; to reduce mind-numbing tedium in an end came of stacking cards to
+; finish the game, the program observers that the game is also won if
+; all the cards in the tableau are revealed *and* this is not the last
+; redeal. 
+;
+; If it is the last redeal it's possible cards are in the waste that
+; are needed to go to the foundation have already been passed over.
+; For example: waste: 2H 10S 10C 9H -- 9H exposed. Clearly we can't
+; move the 9H, so there's no chance of getting to the 2H.
 (define (game-won)
   (or 
+   ; FIXME: DRY
    (and (= 13 (length (get-cards 2)))
 	(= 13 (length (get-cards 3)))
 	(= 13 (length (get-cards 4)))
@@ -264,6 +291,7 @@
    (and 
     (or (< max-redeal 0) (> (- max-redeal FLIP-COUNTER) 0))
     ; slot 6 is always visible or empty
+    ; FIXME: DRY
     (or (empty-slot? 7) (is-visible? (car (reverse (get-cards 7)))))
     (or (empty-slot? 8) (is-visible? (car (reverse (get-cards 8)))))
     (or (empty-slot? 9) (is-visible? (car (reverse (get-cards 9)))))
