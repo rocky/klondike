@@ -102,7 +102,7 @@
 ; check the next exposed card...
 (define (plop-if-ace-or-deuce slot)
   (if (or (is-ace? slot) (is-deuce? slot))
-	  (button-double-clicked slot)))
+	  (move-to-foundation-if-possible slot)))
 
 (define (complete-transaction start-slot card-list end-slot)
   (move-n-cards! start-slot end-slot card-list)
@@ -118,7 +118,7 @@
   ; to move *down* from the foundation.
   (if (not (or (empty-slot? start-slot)
 	       (member start-slot foundation)))
-	   (button-double-clicked start-slot))
+	   (move-to-foundation-if-possible start-slot))
   #t)
 
 (define (button-released start-slot card-list end-slot)
@@ -150,11 +150,14 @@
       (begin
 	(flip-stock stock waste max-redeal 
                                (if deal-three 3 1))
-	(button-double-clicked waste))))
+	(move-to-foundation-if-possible waste))))
+
+(define (button-double-clicked start-slot)
+  (move-to-foundation-if-possible start-slot))
 
 ; If a the top card in start-slot can be moved to the foundation, do
 ; it.
-(define (button-double-clicked start-slot)
+(define (move-to-foundation-if-possible start-slot)
   (or (and (member start-slot foundation)
 	   (autoplay-foundations))
       (and (member start-slot (cons waste tableau))
@@ -273,9 +276,9 @@
 
 ; The game is won if all of the cards are in the foundation.  However
 ; to reduce mind-numbing tedium in an end came of stacking cards to
-; finish the game, the program observers that the game is also won if
+; finish the game, this program observes that the game is also won if
 ; all the cards in the tableau are revealed *and* this is not the last
-; redeal. 
+; redeal or it is the last redeal and the waste pile is empty.
 ;
 ; If it is the last redeal it's possible cards are in the waste that
 ; are needed to go to the foundation have already been passed over.
