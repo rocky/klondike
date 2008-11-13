@@ -1,0 +1,14 @@
+A slightly less lame version of the gnome-games klondike program by
+making the program more game aware. 
+
+Cards are moved up to the foundation if possible whenever a new card
+is exposed. In some rare cases you may want to move the card moved
+back down. 
+
+Also the game is over when all cards have been exposed and there is at
+least one redeal left. (This condition assumies the stock is exposed
+one card at a time which is the default rather than the more
+traditional skipping two).
+
+To install just find klondike.scm and replace it with the version
+found here.

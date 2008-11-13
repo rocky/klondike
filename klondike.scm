@@ -280,7 +280,8 @@
 ; If it is the last redeal it's possible cards are in the waste that
 ; are needed to go to the foundation have already been passed over.
 ; For example: waste: 2H 10S 10C 9H -- 9H exposed. Clearly we can't
-; move the 9H, so there's no chance of getting to the 2H.
+; move the 9H, so there's no chance of getting to the 2H. However if the
+; waste is pile is 0, this can't happen.
 (define (game-won)
   (or 
    ; FIXME: DRY
@@ -289,7 +290,8 @@
 	(= 13 (length (get-cards 4)))
 	(= 13 (length (get-cards 5))))
    (and 
-    (or (< max-redeal 0) (> (- max-redeal FLIP-COUNTER) 0))
+    (or (< max-redeal 0) (> (- max-redeal FLIP-COUNTER) 0)
+	(and (= max-redeal 0) (empty-slot? waste)))
     ; slot 6 is always visible or empty
     ; FIXME: DRY
     (or (empty-slot? 7) (is-visible? (car (reverse (get-cards 7)))))
